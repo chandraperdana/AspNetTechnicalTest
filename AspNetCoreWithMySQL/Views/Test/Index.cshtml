@@ -1,0 +1,157 @@
+﻿<div class="card">
+    <div class="card-header">
+        Test Search
+    </div>
+    <div class="card-body">
+        @if (TempData["success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["success"]
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        }
+        @if (TempData["error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["error"]
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        }
+        <form method="post" asp-action="Index">
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" class="form-control" id="title" name="title">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="title">Category</label>
+                        <select class="form-control" id="selCategory" name="selCategory">
+                            <option selected value="">--Select Category--</option>
+                            <option>Online Test</option>
+                            <option>Offline Test</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="title">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate">
+                        <span class="text-danger" style="display: none; font-size: 14px;" id="iDate">Start date cannot more than End Date and End date also cannot less than start date.</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="title">End Date</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate">
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex flex-row-reverse">
+                <button type="button" id="btnSearch" class="btn btn-primary">Search Data</button>
+                <a asp-controller="Test" asp-action="Upsert" class="btn btn-success mr-1">Create</a>
+            </div>
+            <hr />
+        </form>
+        <table id="tblData" class="table table-bordered" width="100%">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Test Date</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts{
+    <script type="text/javascript">
+        DemoDatatable();
+        function DemoDatatable() {
+            $("#tblData").DataTable({
+                "processing": true,
+                "serverSide": true,
+                "filter": true,
+                "orderMulti": false,
+                "destroy": true,
+                "ordering": true,
+                "ajax": {
+                    "url": '/Test/Index',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": function (data) {
+                        data.startDate = $('#startDate').val();
+                        data.endDate = $('#endDate').val();
+                        return data
+                    }
+                },
+                "columns": [
+                    {
+                        "data": "Title",
+                        "render": function (data, type, row) {
+                            return '<a href="/Test/Upsert/' + row.Id + '">' + data + '</a>';
+                        }
+                    }
+                    , { "data": "Category" }
+                    , {
+                        "data": "TestDate",
+                        render: function (data, type, row) {
+                            if (type === "sort" || type === "type") {
+                                return data;
+                            }
+                            return moment(data).format("DD MMM YYYY");
+                        }
+                      }
+                    , {
+                        "data": "Location", 
+                        "render": function (data, type, row) {
+
+                            if (row.Category === 'Online Test') {
+                                return '<a href="'+ data +'" target="_blank">'+ data +'</a>';
+                            }
+
+                            else {
+
+                                return data;
+                            }
+                        }
+                    }
+                ]
+            });
+        }
+        oTable = $('#tblData').DataTable();
+        $('#btnSearch').click(function () {
+            oTable.columns(0).search($('#title').val().trim());
+            oTable.columns(1).search($('#selCategory').val().trim());
+            var sd = document.getElementById("startDate").value;
+            var ed = document.getElementById("endDate").value;
+            if(sd != '' || sd != '')
+            {
+                if (range_validate(sd, ed)) {
+                    document.getElementById("iDate").style.display = "none";
+                    oTable.draw();
+                }
+            } else {
+                oTable.draw();
+            }
+        });
+
+        var range_validate = function (from_date, to_date) {
+            if (from_date < to_date) {
+                return true;
+            } else {
+                document.getElementById("iDate").style.display = "";
+                return false;
+            }
+        };
+    </script>
+}
